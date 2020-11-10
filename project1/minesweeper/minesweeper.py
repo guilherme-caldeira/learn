@@ -176,7 +176,7 @@ class MinesweeperAI():
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
     
-    def remove_no_cells(self):
+    def remove_empty_cells(self):
         """
         Removes all sentences from self.knowledge where the number
         of cells in set is equal to 0.
@@ -191,18 +191,15 @@ class MinesweeperAI():
                 self.knowledge.remove(sentence_to_remove)
         list_to_remove.clear()
     
-    def remove_equal_sentences(self):
+    def remove_dup_sent(self):
         """
         Removes duplicated sentences from self.knowledge
         """
         list_to_verify = []
         list_to_verify = self.knowledge.copy()
         list_to_remove = []
-        list_to_keep = []
         while len(list_to_verify) != 0:
             sentence_to_verify = list_to_verify.pop()
-            if sentence_to_verify not in list_to_remove:
-                list_to_keep.append(sentence_to_verify)
             for sentence_to_check in list_to_verify:
                 if sentence_to_check == sentence_to_verify:
                     list_to_remove.append(sentence_to_check)
@@ -211,7 +208,6 @@ class MinesweeperAI():
                 self.knowledge.remove(sentence_to_remove)
         list_to_verify.clear()
         list_to_remove.clear()
-        list_to_keep.clear()
     
     def add_knowledge(self, cell, count):
         """
@@ -272,6 +268,7 @@ class MinesweeperAI():
         
         # 4) mark any additional cells as safe or as mines
         for inquiry_sentence in self.knowledge:
+            # Safe cells
             inquiry_safe_set = set()
             inquiry_safe_set = inquiry_sentence.known_safes()
             if inquiry_safe_set is not None:
@@ -279,6 +276,7 @@ class MinesweeperAI():
                     inquiry_cell = inquiry_safe_set.pop()
                     inquiry_sentence.mark_safe(inquiry_cell)
                     self.mark_safe(inquiry_cell)
+            # Mine cells
             inquiry_mine_set = set()
             inquiry_mine_set = inquiry_sentence.known_mines()
             if inquiry_mine_set is not None:
@@ -288,8 +286,8 @@ class MinesweeperAI():
                     self.mark_mine(inquiry_cell)
         
         # Update self.knowledge
-        self.remove_no_cells()
-        self.remove_equal_sentences()
+        self.remove_empty_cells()
+        self.remove_dup_sent()
         
         # 5) add any new sentences to the AI's knowledge base
         all_sentences = []
@@ -324,8 +322,8 @@ class MinesweeperAI():
         sentence_to_write.clear()
 
         # Update self.knowledge
-        self.remove_no_cells()
-        self.remove_equal_sentences()
+        self.remove_empty_cells()
+        self.remove_dup_sent()
         
     def make_safe_move(self):
         """
