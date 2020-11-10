@@ -176,7 +176,7 @@ class MinesweeperAI():
         for sentence in self.knowledge:
             sentence.mark_safe(cell)
     
-    def update_no_cells(self):
+    def remove_no_cells(self):
         """
         Removes all sentences from self.knowledge where the number
         of cells in set is equal to 0.
@@ -190,7 +190,29 @@ class MinesweeperAI():
             for sentence_to_remove in list_to_remove:
                 self.knowledge.remove(sentence_to_remove)
         list_to_remove.clear()
-
+    
+    def remove_equal_sentences(self):
+        """
+        Removes duplicated sentences from self.knowledge
+        """
+        list_to_verify = []
+        list_to_verify = self.knowledge.copy()
+        list_to_remove = []
+        list_to_keep = []
+        while len(list_to_verify) != 0:
+            sentence_to_verify = list_to_verify.pop()
+            if sentence_to_verify not in list_to_remove:
+                list_to_keep.append(sentence_to_verify)
+            for sentence_to_check in list_to_verify:
+                if sentence_to_check == sentence_to_verify:
+                    list_to_remove.append(sentence_to_check)
+        if len(list_to_remove) > 0:
+            for sentence_to_remove in list_to_remove:
+                self.knowledge.remove(sentence_to_remove)
+        list_to_verify.clear()
+        list_to_remove.clear()
+        list_to_keep.clear()
+    
     def add_knowledge(self, cell, count):
         """
         Called when the Minesweeper board tells us, for a given
@@ -248,10 +270,6 @@ class MinesweeperAI():
             if not already_exists:
                 self.knowledge.append(new_sentence)
         
-        print("imprimindo self.knowledge")
-        for a in self.knowledge:
-            print(a)
-        
         # 4) mark any additional cells as safe or as mines
         for inquiry_sentence in self.knowledge:
             inquiry_safe_set = set()
@@ -270,33 +288,24 @@ class MinesweeperAI():
                     self.mark_mine(inquiry_cell)
         
         # Update self.knowledge
-        self.update_no_cells()
+        self.remove_no_cells()
+        self.remove_equal_sentences()
         
         # 5) add any new sentences to the AI's knowledge base
         all_sentences = []
         all_sentences = self.knowledge.copy()
         sentence_to_write = []
-        sentence_to_remove = []
         for x in self.knowledge:
             for y in all_sentences:
                 if x == y:
                     pass
                 else:
                     if y.cells.issubset(x.cells):
-                        print("passei no infer")
-                        print("y.cells")
-                        print(y.cells)
-                        print("x.cells")
-                        print(x.cells)
                         inferred_set = set()
                         inferred_set = x.cells.difference(y.cells)
                         inferred_count = x.count - y.count
                         inferred_sentence = Sentence(inferred_set, inferred_count)
                         sentence_to_write.append(inferred_sentence)
-                        sentence_to_remove.append(y)
-                        sentence_to_remove.append(x)
-                        print("inferred sentence")
-                        print(inferred_sentence)
         
         if len(sentence_to_write) > 0:
             for z in sentence_to_write:
@@ -311,15 +320,12 @@ class MinesweeperAI():
                             continue
                     if not already_exists:
                         self.knowledge.append(z)
-        if len(sentence_to_remove) > 0:
-            for sent in sentence_to_remove:
-                if sent in self.knowledge:
-                    self.knowledge.remove(sent)
-        
         all_sentences.clear()
         sentence_to_write.clear()
-        sentence_to_remove.clear()
-        self.update_no_cells()
+
+        # Update self.knowledge
+        self.remove_no_cells()
+        self.remove_equal_sentences()
         
     def make_safe_move(self):
         """
@@ -343,13 +349,11 @@ class MinesweeperAI():
             1) have not already been chosen, and
             2) are not known to be mines
         """
-        attempt = True
-        while attempt:
-            i = random.randrange(self.height)
-            j = random.randrange(self.width)
-            if (i,j) not in self.moves_made and (i,j) not in self.mines:
-                return (i,j)
-        
-        if not attempt:
-            print("No random move")
+        if (self.height * self.width) == (len(self.moves_made) + len(self.mines)):
             return None
+        else:
+            while True:
+                i = random.randrange(self.height)
+                j = random.randrange(self.width)
+                if (i,j) not in self.moves_made and (i,j) not in self.mines:
+                    return (i,j)
