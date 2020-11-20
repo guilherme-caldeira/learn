@@ -3,9 +3,6 @@ import random
 import re
 import sys
 
-import pandas as pd
-import numpy as np
-from collections import Counter
 
 DAMPING = 0.85
 SAMPLES = 10000
@@ -85,20 +82,23 @@ def sample_pagerank(corpus, damping_factor, n):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    # List of pages
-    pages = []
+    # Page rank
+    page_rank = {}
+    for x in corpus:
+        page_rank[x] = 0
 
     # For the first time, choose a random page
-    corpus_page = []
+    corpus_pages = []
     for x in corpus:
-        corpus_page.append(x)
-    page = random.choice(corpus_page)
-    pages.append(page)
+        corpus_pages.append(x)
+    page = random.choice(corpus_pages)
+    page_rank[page] = 1
 
     # List of pages to choose and their weight
     pages_to_choose = []
     pages_choose_weight = []
 
+    # Transition model
     trans_mod = {}
 
     # Repeat sampling N - 1 times because one page was already chosen
@@ -112,25 +112,21 @@ def sample_pagerank(corpus, damping_factor, n):
             pages_choose_weight.append(y)
         
         # Draw a new page based on the transition model
-        new_page = random.choices(pages_to_choose, weights=pages_choose_weight, k=1)
+        page = random.choices(pages_to_choose, weights=pages_choose_weight, k=1)[0]
 
-        # Add the chosen page to the list with all pages chosen
-        pages.append(new_page[0])
+        # Add 1 to the chosen page
+        page_rank[page] += 1
 
         # Clear all collections
         trans_mod.clear()
         pages_to_choose.clear()
         pages_choose_weight.clear()
     
-    # Summarize
-    final_score = {}
-    final_score = Counter(pages)
-
-    # Gets the proportional value
-    for x, y in final_score.items():
-        final_score[x] = y / n
-
-    return final_score
+    # Summarize and return
+    sample_rank = {}
+    for page in page_rank:
+        sample_rank[page] = page_rank[page] / sum(page_rank.values())
+    return sample_rank
 
 
 def iterate_pagerank(corpus, damping_factor):
@@ -142,7 +138,48 @@ def iterate_pagerank(corpus, damping_factor):
     their estimated PageRank value (a value between 0 and 1). All
     PageRank values should sum to 1.
     """
-    raise NotImplementedError
+    # Each possible page i that links to page p
+    incoming = {}
+    for p in corpus:
+        incoming[p] = set()
+    for p in corpus:
+        for i in corpus[p]:
+            incoming[i].add(p)
+    
+    # Pages in corpus
+    corpus_pages = []
+    for x in corpus:
+        corpus_pages.append(x)
+    n = len(corpus_pages)
+
+    # Page rank
+    page_rank = {}
+    for page in corpus_pages:
+        page_rank[page] = 1 / n
+    
+    diff = float('inf')
+    while diff > 0.001:
+        diff = 0
+        for page in corpus_pages:
+            # Apply page rank formula
+            p = (1 - damping_factor) / n
+            for i in incoming[page]:
+                if len(corpus[i]) > 0:
+                    p += damping_factor * sum([page_rank[i] / len(corpus[i])])
+                else:
+                    # A page that has no links at all should be interpreted 
+                    # as having one link for every page in the corpus (including itself)
+                    p += 1 / n
+            # Check whether the iteration is converging
+            diff = max(diff, abs(page_rank[page] - p))
+            # Update page_rank with the new p value
+            page_rank[page] = p
+
+    # Summarize and return
+    iterate_rank = {}
+    for page in page_rank:
+        iterate_rank[page] = page_rank[page] / sum(page_rank.values())
+    return iterate_rank
 
 
 if __name__ == "__main__":
