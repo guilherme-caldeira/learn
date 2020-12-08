@@ -99,7 +99,20 @@ class CrosswordCreator():
         (Remove any values that are inconsistent with a variable's unary
          constraints; in this case, the length of the word.)
         """
-        raise NotImplementedError
+        # List to keep track of the words to remove
+        words_to_remove = []
+
+        # Loop through all variables and words in the variable
+        for variable, words in self.domains.items():
+            for word in words:
+                if len(word) != variable.length:
+                    words_to_remove.append(word)
+            
+            # Removes the words with more or less characters than variable.length
+            for word in words_to_remove:
+                self.domains[variable].remove(word)
+            words_to_remove.clear()
+
 
     def revise(self, x, y):
         """
@@ -110,7 +123,32 @@ class CrosswordCreator():
         Return True if a revision was made to the domain of `x`; return
         False if no revision was made.
         """
-        raise NotImplementedError
+        # List to keep track of the words to remove
+        words_to_remove = []
+
+        # Gets the overlap between variables x and y
+        intersection = self.crossword.overlaps[x, y]
+
+        if intersection is None:
+            return False
+        else:
+            # If a word in x domain has a correspondence in y domain, keep the word in x domain
+            for wordx in self.domains[x]:
+                flag = False
+                for wordy in self.domains[y]:
+                    if wordx[intersection[0]] == wordy[intersection[1]]:
+                        flag = True
+                        continue
+                if not flag:
+                    words_to_remove.append(wordx)
+        
+        if len(words_to_remove) > 0:
+            for word in words_to_remove:
+                self.domains[x].remove(word)
+            return True
+        else:
+            return False
+
 
     def ac3(self, arcs=None):
         """
@@ -121,7 +159,40 @@ class CrosswordCreator():
         Return True if arc consistency is enforced and no domains are empty;
         return False if one or more domains end up empty.
         """
-        raise NotImplementedError
+        # List of arcs
+        arcs_list = []
+
+        # Check whether arcs is None in order to fulfill arcs_list
+        if arcs is None:
+            for var in self.crossword.variables:
+                neighbors = self.crossword.neighbors(var)
+                for neighbor in neighbors:
+                    if (neighbor, var) not in arcs_list:
+                        arcs_list.append((var, neighbor))
+        else:
+            print("ARCS is not none")
+            arcs_list = arcs.copy()
+        
+        while len(arcs_list) != 0:
+            # Remove the arcs from the list
+            x = arcs_list[0][0]
+            y = arcs_list[0][1]
+            arcs_list = arcs_list[1:]
+            # If revise is true
+            if self.revise(x,y):
+                # If the resulting domain of x is 0, the csp is unsolvable
+                if len(self.domains[x]) == 0:
+                    return False
+                # Necessary to check if all the arcs associated to x are still consistent
+                else:
+                    neighbors = self.crossword.neighbors(x)
+                    if y in neighbors:
+                        neighbors.remove(y)
+                    if len(neighbors) > 0:
+                        for neighbor in neighbors:
+                            if (x, neighbor) not in arcs_list and (neighbor, x) not in arcs_list:
+                                arcs_list.append((x, neighbor))
+        return True
 
     def assignment_complete(self, assignment):
         """
