@@ -1,3 +1,4 @@
+from os import O_WRONLY
 import sys
 
 from crossword import *
@@ -192,6 +193,7 @@ class CrosswordCreator():
                         for neighbor in neighbors:
                             if (x, neighbor) not in arcs_list and (neighbor, x) not in arcs_list:
                                 arcs_list.append((x, neighbor))
+        
         return True
 
     def assignment_complete(self, assignment):
@@ -255,11 +257,31 @@ class CrosswordCreator():
         The first value in the list, for example, should be the one
         that rules out the fewest values among the neighbors of `var`.
         """
-        # List of values in the domain of 'var'
+        # List of words in the domain of 'var' that shall be returned
         list_of_values = []
 
-        for word in self.domains[var]:
-            list_of_values.append(word)
+        if len(self.domains[var]) == 1:
+            list_of_values = [word for word in self.domains[var]]
+            return list_of_values
+        
+        # Dictionary to keep track of how many words in var each word eliminates
+        words_eliminated = {word:0 for word in self.domains[var]}
+
+        # List of all variables already defined
+        var_in_assignment = [var_assigned for var_assigned in assignment.keys()]
+
+        # Get the number of words in other variables each word in var will eliminate
+        for random_var in self.crossword.variables:
+            if random_var != var and random_var not in var_in_assignment:
+                intersection = self.crossword.overlaps[var, random_var]
+                if intersection is not None:
+                    for wordx in self.domains[var]:
+                        for wordy in self.domains[random_var]:
+                            if wordx[intersection[0]] != wordy[intersection[1]]:
+                                words_eliminated[wordx] += 1
+        
+        words_eliminated_sorted = dict(sorted(words_eliminated.items(), key=lambda item: item[1]))
+        list_of_values = [word for word in words_eliminated_sorted.keys()]
         
         return list_of_values
 
@@ -271,11 +293,35 @@ class CrosswordCreator():
         degree. If there is a tie, any of the tied variables are acceptable
         return values.
         """
-        vars_already_assigned = assignment.keys()
-        for var in self.crossword.variables:
-            if var not in vars_already_assigned:
-                return var
-        return None
+        # List of all variables already defined
+        var_in_assignment = [var_assigned for var_assigned in assignment.keys()]
+
+        # Dictionary to keep track of how many remaining values each variable has
+        words_in_var = {var:0 for var in self.crossword.variables if var not in var_in_assignment}
+
+        # Get the variable with the minimum number of remaining values
+        for random_var in self.crossword.variables:
+            if random_var not in var_in_assignment:
+                words_in_var[random_var] = len(self.domains[random_var])
+        
+        words_in_var_sorted = dict(sorted(words_in_var.items(), key=lambda item: item[1]))
+
+        # List to keep track of which variable can be returned
+        list_of_variables = []
+        less_words = list(words_in_var_sorted.values())[0]
+        for var, n_words in words_in_var_sorted.items():
+            if n_words == less_words:
+                list_of_variables.append(var)
+        
+        if len(list_of_variables) == 1:
+            return list_of_variables[0]
+        else:
+            largest_degree = {var:0 for var in list_of_variables}
+            for var_n in list_of_variables:
+                largest_degree[var_n] = len(self.crossword.neighbors(var_n))
+            largest_degree_sorted = dict(sorted(largest_degree.items(), key=lambda item: item[1]))
+            return list(largest_degree_sorted.keys())[-1]
+
 
     def backtrack(self, assignment):
         """
