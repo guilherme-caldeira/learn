@@ -110,8 +110,9 @@ class CrosswordCreator():
                     words_to_remove.append(word)
             
             # Removes the words with more or less characters than variable.length
-            for word in words_to_remove:
-                self.domains[variable].remove(word)
+            if len(words_to_remove) > 0:
+                for word in words_to_remove:
+                    self.domains[variable].remove(word)
             words_to_remove.clear()
 
 
@@ -171,7 +172,6 @@ class CrosswordCreator():
                     if (neighbor, var) not in arcs_list:
                         arcs_list.append((var, neighbor))
         else:
-            print("ARCS is not none")
             arcs_list = arcs.copy()
         
         while len(arcs_list) != 0:
@@ -196,6 +196,7 @@ class CrosswordCreator():
         
         return True
 
+
     def assignment_complete(self, assignment):
         """
         Return True if `assignment` is complete (i.e., assigns a value to each
@@ -207,6 +208,7 @@ class CrosswordCreator():
         else:
             return False
 
+
     def consistent(self, assignment):
         """
         Return True if `assignment` is consistent (i.e., words fit in crossword
@@ -214,6 +216,7 @@ class CrosswordCreator():
         """
         # List to keep track of the words in the assignment
         words_in_assigment = []
+        
         # 1) The words must be distinct
         for word in assignment.values():
             if word not in words_in_assigment:
@@ -250,6 +253,7 @@ class CrosswordCreator():
         
         return True
 
+
     def order_domain_values(self, var, assignment):
         """
         Return a list of values in the domain of `var`, in order by
@@ -258,11 +262,11 @@ class CrosswordCreator():
         that rules out the fewest values among the neighbors of `var`.
         """
         # List of words in the domain of 'var' that shall be returned
-        list_of_values = []
+        list_of_words = []
 
         if len(self.domains[var]) == 1:
-            list_of_values = [word for word in self.domains[var]]
-            return list_of_values
+            list_of_words = [word for word in self.domains[var]]
+            return list_of_words
         
         # Dictionary to keep track of how many words in var each word eliminates
         words_eliminated = {word:0 for word in self.domains[var]}
@@ -285,6 +289,7 @@ class CrosswordCreator():
         
         return list_of_values
 
+
     def select_unassigned_variable(self, assignment):
         """
         Return an unassigned variable not already part of `assignment`.
@@ -306,15 +311,17 @@ class CrosswordCreator():
         
         words_in_var_sorted = dict(sorted(words_in_var.items(), key=lambda item: item[1]))
 
-        # List to keep track of which variable can be returned
+        # Check whether there is a tie in the number of variables with less words
         list_of_variables = []
         less_words = list(words_in_var_sorted.values())[0]
         for var, n_words in words_in_var_sorted.items():
             if n_words == less_words:
                 list_of_variables.append(var)
         
+        # If only one variable has the minimum number of remaining words, this variable will be returned
         if len(list_of_variables) == 1:
             return list_of_variables[0]
+        # Else, if there is a tie, the variable with the highest degree will be returned
         else:
             largest_degree = {var:0 for var in list_of_variables}
             for var_n in list_of_variables:
