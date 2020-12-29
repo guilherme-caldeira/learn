@@ -174,33 +174,33 @@ class NimAI():
         """
         actions = Nim.available_actions(state)
 
-        highest_q = {action:0.0 for action in actions}
-
         if not epsilon:
-            for action in actions:
-                q_value = self.get_q_value(state, action)
-                highest_q[action] = q_value
-            
-            highest_q_sorted = dict(sorted(highest_q.items(), key=lambda item: item[1]))
-
-            return list(highest_q_sorted.keys())[-1]
+            return self.best_action(state, actions)
         
         else:
             if random.uniform(0, 1) < self.epsilon:
                 # Explore
                 x = random.randint(0, len(actions) - 1)
-                a = list(actions)
-                return a[x]
+                actions_list = list(actions)
+                return actions_list[x]
 
             else:
                 # Exploit
-                for action in actions:
-                    q_value = self.get_q_value(state, action)
-                    highest_q[action] = q_value
-            
-                highest_q_sorted = dict(sorted(highest_q.items(), key=lambda item: item[1]))
+                return self.best_action(state, actions)
 
-                return list(highest_q_sorted.keys())[-1]
+    def best_action(self, state, actions):
+        """
+        Returns the best action, the action with the highest Q-value.
+        """
+        highest_q = {action:0.0 for action in actions}
+
+        for action in actions:
+            q_value = self.get_q_value(state, action)
+            highest_q[action] = q_value
+            
+        highest_q_sorted = dict(sorted(highest_q.items(), key=lambda item: item[1]))
+
+        return list(highest_q_sorted.keys())[-1]
 
 def train(n):
     """
