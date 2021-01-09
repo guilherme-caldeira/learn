@@ -5,6 +5,7 @@ import sys
 import tensorflow as tf
 
 from sklearn.model_selection import train_test_split
+from tensorflow.python.keras import activations
 
 EPOCHS = 10
 IMG_WIDTH = 30
@@ -58,7 +59,21 @@ def load_data(data_dir):
     be a list of integer labels, representing the categories for each of the
     corresponding `images`.
     """
-    raise NotImplementedError
+    images = []
+    labels = []
+
+    for i in range(NUM_CATEGORIES):
+        path = data_dir + os.sep + str(i)
+        with os.scandir(path) as files:
+            for file in files:
+                if file.name.endswith(".ppm") and file.is_file():
+                    print(file.path, file.name)
+                    img = cv2.imread(file.path,1)
+                    res = cv2.resize(img, dsize=(IMG_WIDTH, IMG_HEIGHT), interpolation=cv2.INTER_AREA)
+                    images.append(res)
+                    labels.append(str(i))
+    
+    return (images, labels)
 
 
 def get_model():
@@ -67,7 +82,22 @@ def get_model():
     `input_shape` of the first layer is `(IMG_WIDTH, IMG_HEIGHT, 3)`.
     The output layer should have `NUM_CATEGORIES` units, one for each category.
     """
-    raise NotImplementedError
+    # Create a convolutional neural network
+    model = tf.keras.models.Sequential()
+    model.add(tf.keras.Input(shape=(IMG_WIDTH, IMG_HEIGHT, 3)))
+    model.add(tf.keras.layers.Conv2D(filters=32, kernel_size=(3,3), activation="relu"))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=2))
+    model.add(tf.keras.layers.Conv2D(filters=64, kernel_size=(3,3), activation="relu"))
+    model.add(tf.keras.layers.MaxPooling2D(pool_size=(2,2), strides=2))
+    model.add(tf.keras.layers.Flatten())
+    model.add(tf.keras.layers.Dropout(0.5)),
+    model.add(tf.keras.layers.Dense(units=NUM_CATEGORIES, activation="softmax"))
+    model.compile(optimizer='adam',
+              loss="categorical_crossentropy",
+              metrics=['accuracy'])
+    model.summary()
+
+    return model
 
 
 if __name__ == "__main__":
