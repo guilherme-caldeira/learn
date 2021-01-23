@@ -1,6 +1,8 @@
 import nltk
 import sys
 
+#from nltk.tokenize import word_tokenize
+
 TERMINALS = """
 Adj -> "country" | "dreadful" | "enigmatical" | "little" | "moist" | "red"
 Adv -> "down" | "here" | "never"
@@ -15,7 +17,11 @@ V -> "smiled" | "tell" | "were"
 """
 
 NONTERMINALS = """
-S -> N V
+S -> NP VP | VP NP | S Conj S
+NP -> N | Det N | NP PP | Det AdjP N
+VP -> V | V NP | V PP | Adv VP | VP Adv
+PP -> P NP
+AdjP -> Adj | Adj AdjP
 """
 
 grammar = nltk.CFG.fromstring(NONTERMINALS + TERMINALS)
@@ -62,7 +68,15 @@ def preprocess(sentence):
     and removing any word that does not contain at least one alphabetic
     character.
     """
-    raise NotImplementedError
+    point_marks = ['!', ',', '.', ';', '?']
+
+    split_sentence = nltk.word_tokenize(sentence)
+
+    remove_numbers = [x for x in split_sentence if x.isnumeric() == False ]
+    remove_non_alnum = [x for x in remove_numbers if x not in point_marks ]
+    words_lower = [x.lower() for x in remove_non_alnum]
+    
+    return words_lower
 
 
 def np_chunk(tree):
@@ -72,7 +86,15 @@ def np_chunk(tree):
     whose label is "NP" that does not itself contain any other
     noun phrases as subtrees.
     """
-    raise NotImplementedError
+    np_chunk = []
+    parented_tree = nltk.tree.ParentedTree.convert(tree)
+
+    for s in parented_tree.subtrees():
+        if s.label() == "N":
+            np_chunk.append(s.parent())
+    
+    
+    return np_chunk
 
 
 if __name__ == "__main__":
