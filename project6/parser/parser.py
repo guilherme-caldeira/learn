@@ -1,7 +1,7 @@
 import nltk
 import sys
+import string
 
-#from nltk.tokenize import word_tokenize
 
 TERMINALS = """
 Adj -> "country" | "dreadful" | "enigmatical" | "little" | "moist" | "red"
@@ -18,10 +18,10 @@ V -> "smiled" | "tell" | "were"
 
 NONTERMINALS = """
 S -> NP VP | VP NP | S Conj S
+AdjP -> Adj | Adj AdjP
 NP -> N | Det N | NP PP | Det AdjP N
 VP -> V | V NP | V PP | Adv VP | VP Adv
 PP -> P NP
-AdjP -> Adj | Adj AdjP
 """
 
 grammar = nltk.CFG.fromstring(NONTERMINALS + TERMINALS)
@@ -68,15 +68,12 @@ def preprocess(sentence):
     and removing any word that does not contain at least one alphabetic
     character.
     """
-    point_marks = ['!', ',', '.', ';', '?']
-
-    split_sentence = nltk.word_tokenize(sentence)
-
-    remove_numbers = [x for x in split_sentence if x.isnumeric() == False ]
-    remove_non_alnum = [x for x in remove_numbers if x not in point_marks ]
-    words_lower = [x.lower() for x in remove_non_alnum]
+    all_words = [
+        word.lower() for word in nltk.word_tokenize(sentence)
+        if not word in string.punctuation and not word.isnumeric()
+    ]
     
-    return words_lower
+    return all_words
 
 
 def np_chunk(tree):
